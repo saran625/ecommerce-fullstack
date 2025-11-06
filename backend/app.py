@@ -34,12 +34,43 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 jwt = JWTManager(app)
 
 # MongoDB Connection
+# MongoDB Connection with better error handling
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://mongodb:27017/')
 DB_NAME = os.getenv('DB_NAME', 'ecommerce_db')
 
-client = MongoClient(MONGO_URI)
-db = client[DB_NAME]
+try:
+    client = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=5000,  # 5 second timeout
+        connectTimeoutMS=10000,
+        socketTimeoutMS=10000
+    )
+    
+    # Test the connection
+    client.admin.command('ping')
+    logger.info("✅ MongoDB connected successfully")
+    
+    db = client[DB_NAME]
+    
+except Exception as e:
+    logger.error(f"❌ MongoDB connection failed: {str(e)}")
+    # You might want to exit or handle this differently
+    raise e
 
+# Collections with retry logic
+def get_collection(collection_name):
+    """Get collection with connection check"""
+    try:
+        return db[collection_name]
+    except Exception as e:
+        logger.error(f"Error accessing collection {collection_name}: {str(e)}")
+        raise e
+
+users_collection = get_collection('users')
+products_collection = get_collection('products')
+orders_collection = get_collection('orders')
+cart_collection = get_collection('cart')
+categories_collection = get_collection('categories')
 # Collections
 users_collection = db['users']
 products_collection = db['products']

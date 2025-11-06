@@ -1,11 +1,10 @@
 # E-Commerce Full Stack Application
 
-Complete e-commerce platform with React frontend, Flask backend, MongoDB database, Docker deployment, and AWS hosting.
+Complete e-commerce platform with React frontend, Flask backend, MongoDB database, Docker deployment.
 
 ## 🚀 Quick Start
 
 ### Local Development
-
 1. Clone the repository
 2. Install Docker and Docker Compose
 3. Run: `docker-compose up --build`
@@ -18,17 +17,15 @@ Complete e-commerce platform with React frontend, Flask backend, MongoDB databas
 - Admin: admin@ecommerce.com / admin123
 
 ## 📦 Tech Stack
-
 - **Frontend**: React 18, React Router, Axios
 - **Backend**: Flask, JWT, MongoDB
 - **Database**: MongoDB
-- **Deployment**: Docker, AWS EC2
+- **Deployment**: Docker
 
 ## 🛠️ API Endpoints
-
 ### Authentication
 - POST /api/auth/register
-- POST /api/auth/login
+- POST /api/auth/login  
 - GET /api/auth/profile
 
 ### Products
@@ -48,16 +45,4 @@ Complete e-commerce platform with React frontend, Flask backend, MongoDB databas
 - GET /api/orders/:id
 
 ## 📝 Environment Variables
-
 ### Backend (.env)
-```
-MONGO_URI=mongodb://mongodb:27017/
-DB_NAME=ecommerce_db
-JWT_SECRET=your-secret-key
-PORT=5000
-```
-
-### Frontend (.env)
-```
-REACT_APP_API_URL=http://localhost:5000/api
-```

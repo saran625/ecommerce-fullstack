@@ -2,15 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install netcat for health checks
+RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
-# Copy application
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
 COPY . .
 
-# Expose port
+# Make wait script executable
+RUN chmod +x wait_for_db.py
+
 EXPOSE 5000
 
-# Run with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "app:app"]
+# Wait for DB then start app
+CMD ["sh", "-c", "python wait_for_db.py && python app.py"]
