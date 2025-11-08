@@ -554,50 +554,199 @@ def init_sample_data():
         # Create categories
         if categories_collection.count_documents({}) == 0:
             categories = [
-                {"name": "Electronics", "slug": "electronics", "is_active": True},
-                {"name": "Clothing", "slug": "clothing", "is_active": True},
-                {"name": "Books", "slug": "books", "is_active": True},
-                {"name": "Home & Garden", "slug": "home-garden", "is_active": True}
+                {"name": "Smartphones", "slug": "smartphones", "is_active": True},
+                {"name": "Laptops", "slug": "laptops", "is_active": True},
+                {"name": "Accessories", "slug": "accessories", "is_active": True}
             ]
             categories_collection.insert_many(categories)
             logger.info("Categories created")
         
-        # Create sample products
+        # Create mobile products (10 phones with 10% discount)
         if products_collection.count_documents({}) == 0:
-            products = [
+            mobile_products = [
                 {
-                    "name": "Wireless Headphones",
-                    "description": "Premium wireless headphones with noise cancellation",
-                    "price": 99.99,
-                    "category": "Electronics",
-                    "stock": 50,
-                    "images": ["/images/headphones.jpg"],
+                    "name": "iPhone 15 Pro Max",
+                    "description": "6.7-inch Super Retina XDR display, Titanium design, A17 Pro chip",
+                    "price": 1199.99,
+                    "original_price": 1333.32,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 25,
+                    "images": ["https://via.placeholder.com/400x300/007ACC/FFFFFF?text=iPhone+15+Pro"],
+                    "specifications": {
+                        "storage": "256GB",
+                        "color": "Natural Titanium",
+                        "screen": "6.7 inch",
+                        "camera": "48MP Main"
+                    },
                     "is_active": True,
                     "created_at": datetime.now()
                 },
                 {
-                    "name": "Cotton T-Shirt",
-                    "description": "Comfortable 100% cotton t-shirt",
-                    "price": 19.99,
-                    "category": "Clothing",
-                    "stock": 100,
-                    "images": ["/images/tshirt.jpg"],
-                    "is_active": True,
-                    "created_at": datetime.now()
-                },
-                {
-                    "name": "Programming Book",
-                    "description": "Complete guide to Python programming",
-                    "price": 39.99,
-                    "category": "Books",
+                    "name": "Samsung Galaxy S24 Ultra",
+                    "description": "Galaxy AI, Snapdragon 8 Gen 3, 200MP camera",
+                    "price": 1299.99,
+                    "original_price": 1444.43,
+                    "discount": 10,
+                    "category": "Smartphones",
                     "stock": 30,
-                    "images": ["/images/book.jpg"],
+                    "images": ["https://via.placeholder.com/400x300/FF6B6B/FFFFFF?text=Galaxy+S24+Ultra"],
+                    "specifications": {
+                        "storage": "512GB",
+                        "color": "Titanium Black",
+                        "screen": "6.8 inch",
+                        "camera": "200MP"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Google Pixel 8 Pro",
+                    "description": "Google AI, Tensor G3 chip, Best-in-class camera",
+                    "price": 999.99,
+                    "original_price": 1111.10,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 20,
+                    "images": ["https://via.placeholder.com/400x300/4ECDC4/FFFFFF?text=Pixel+8+Pro"],
+                    "specifications": {
+                        "storage": "128GB",
+                        "color": "Obsidian",
+                        "screen": "6.7 inch",
+                        "camera": "50MP"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "OnePlus 12",
+                    "description": "Snapdragon 8 Gen 3, Hasselblad camera, 100W charging",
+                    "price": 799.99,
+                    "original_price": 888.88,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 35,
+                    "images": ["https://via.placeholder.com/400x300/45B7D1/FFFFFF?text=OnePlus+12"],
+                    "specifications": {
+                        "storage": "256GB",
+                        "color": "Silky Black",
+                        "screen": "6.82 inch",
+                        "camera": "50MP"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Xiaomi 14 Pro",
+                    "description": "Leica camera system, Snapdragon 8 Gen 3, HyperOS",
+                    "price": 899.99,
+                    "original_price": 999.99,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 28,
+                    "images": ["https://via.placeholder.com/400x300/96CEB4/FFFFFF?text=Xiaomi+14+Pro"],
+                    "specifications": {
+                        "storage": "512GB",
+                        "color": "Black",
+                        "screen": "6.73 inch",
+                        "camera": "50MP Leica"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Nothing Phone 2",
+                    "description": "Glyph interface, Snapdragon 8+ Gen 1, Unique design",
+                    "price": 599.99,
+                    "original_price": 666.66,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 40,
+                    "images": ["https://via.placeholder.com/400x300/F7DC6F/FFFFFF?text=Nothing+Phone+2"],
+                    "specifications": {
+                        "storage": "256GB",
+                        "color": "White",
+                        "screen": "6.7 inch",
+                        "camera": "50MP"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Asus ROG Phone 8",
+                    "description": "Gaming smartphone, Snapdragon 8 Gen 3, AirTrigger buttons",
+                    "price": 1099.99,
+                    "original_price": 1222.21,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 15,
+                    "images": ["https://via.placeholder.com/400x300/BB8FCE/FFFFFF?text=ROG+Phone+8"],
+                    "specifications": {
+                        "storage": "512GB",
+                        "color": "Phantom Black",
+                        "screen": "6.78 inch",
+                        "camera": "50MP"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Vivo X100 Pro",
+                    "description": "Zeiss camera, Dimensity 9300, 100W charging",
+                    "price": 949.99,
+                    "original_price": 1055.54,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 22,
+                    "images": ["https://via.placeholder.com/400x300/85C1E9/FFFFFF?text=Vivo+X100+Pro"],
+                    "specifications": {
+                        "storage": "512GB",
+                        "color": "Starry Blue",
+                        "screen": "6.78 inch",
+                        "camera": "50MP Zeiss"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Oppo Find X7 Ultra",
+                    "description": "Dual periscope cameras, Snapdragon 8 Gen 3, 100W charging",
+                    "price": 1199.99,
+                    "original_price": 1333.32,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 18,
+                    "images": ["https://via.placeholder.com/400x300/F8C471/FFFFFF?text=Oppo+X7+Ultra"],
+                    "specifications": {
+                        "storage": "512GB",
+                        "color": "Ocean Blue",
+                        "screen": "6.82 inch",
+                        "camera": "50MP Dual Periscope"
+                    },
+                    "is_active": True,
+                    "created_at": datetime.now()
+                },
+                {
+                    "name": "Realme GT 5 Pro",
+                    "description": "Flagship killer, Snapdragon 8 Gen 3, 100W charging",
+                    "price": 699.99,
+                    "original_price": 777.77,
+                    "discount": 10,
+                    "category": "Smartphones",
+                    "stock": 45,
+                    "images": ["https://via.placeholder.com/400x300/82E0AA/FFFFFF?text=Realme+GT+5+Pro"],
+                    "specifications": {
+                        "storage": "256GB",
+                        "color": "Bright Moon",
+                        "screen": "6.78 inch",
+                        "camera": "50MP Sony"
+                    },
                     "is_active": True,
                     "created_at": datetime.now()
                 }
             ]
-            products_collection.insert_many(products)
-            logger.info("Sample products created")
+            products_collection.insert_many(mobile_products)
+            logger.info("10 Mobile phones added with 10% discount")
     
     except Exception as e:
         logger.error(f"Init data error: {str(e)}")

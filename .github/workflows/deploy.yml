@@ -1,0 +1,115 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run basic checks
+      run: |
+        cd backend
+        python -c "import flask; print('Flask OK')"
+        python -c "import pymongo; print('MongoDB OK')"
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Create deployment package
+      run: |
+        mkdir -p deployment
+        cp -r backend deployment/
+        cp -r frontend deployment/
+        cp docker-compose.yml deployment/
+        cp nginx.conf deployment/
+        cd deployment
+        tar -czf ../ecommerce-app.tar.gz .
+    
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🚀 Starting deployment process..."
+          
+          # Create app directory
+          mkdir -p /home/ubuntu/ecommerce-app
+          cd /home/ubuntu/ecommerce-app
+          
+          # Stop existing services
+          sudo docker-compose down || true
+          
+          # Backup current deployment
+          tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz . || true
+          
+          # Clean directory
+          rm -rf *
+          
+          # Extract new deployment
+          tar -xzf /home/ubuntu/ecommerce-app.tar.gz -C /home/ubuntu/ecommerce-app/ || true
+          
+          # Set proper permissions
+          sudo chown -R ubuntu:ubuntu /home/ubuntu/ecommerce-app
+          
+          # Build and start services
+          sudo docker-compose up --build -d
+          
+          # Wait for services to start
+          sleep 30
+          
+          # Check if services are running
+          echo "📊 Checking service status:"
+          sudo docker ps
+          
+          # Check backend health
+          curl -f http://localhost:5000/api/health || echo "Backend health check failed"
+          
+          # Check frontend
+          curl -f http://localhost || echo "Frontend check failed"
+          
+          echo "✅ Deployment completed successfully!"
+    
+    - name: Upload deployment package to EC2
+      uses: appleboy/scp-action@v0.1.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "ecommerce-app.tar.gz"
+        target: "/home/ubuntu/"
