@@ -20,17 +20,11 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          command_timeout: 20m  # Increase timeout to 20 minutes
           script: |
             cd /home/ubuntu
-            # Remove the existing app directory to avoid clone errors
+            sudo docker-compose down || true
             rm -rf app
             git clone https://github.com/saran625/ecommerce-fullstack.git app
             cd app
-            
-            # Fix frontend dependencies
-            cd frontend
-            npm install
-            cd ..
-            
-            sudo docker-compose down
             sudo docker-compose up --build -d
