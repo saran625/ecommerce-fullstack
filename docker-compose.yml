@@ -12,11 +12,6 @@ services:
     environment:
       MONGO_INITDB_DATABASE: ecommerce_db
     command: ["--bind_ip_all"]
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/ecommerce_db --quiet
-      interval: 10s
-      timeout: 10s
-      retries: 5
 
   backend:
     build: ./backend
@@ -27,16 +22,10 @@ services:
     environment:
       - MONGO_URI=mongodb://mongodb:27017/
       - DB_NAME=ecommerce_db
-      - JWT_SECRET=your-production-jwt-secret-key
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - PORT=5000
     depends_on:
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - mongodb
 
   frontend:
     build: ./frontend
@@ -45,7 +34,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - REACT_APP_API_URL=http://your-ec2-ip:5000/api
+      - REACT_APP_API_URL=http://localhost:5000/api
     depends_on:
       - backend
 
