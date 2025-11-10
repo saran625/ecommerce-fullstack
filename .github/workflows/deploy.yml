@@ -20,3 +20,11 @@ jobs:
                 whoami
                 pwd
                 ls -la
+        - name: Setup SSH Agent
+          uses: webfactory/ssh-agent@v0.8.0
+          with:
+              ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+        - name: Test SSH Connection
+          run: |
+                ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
