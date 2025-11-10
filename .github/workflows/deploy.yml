@@ -8,23 +8,33 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-        - name: Deploy to Server
-          uses: appleboy/ssh-action@v1.0.3
-          with:
-              host: ${{ secrets.SSH_HOST }}
-              username: ${{ secrets.SSH_USERNAME }}
-              key: ${{ secrets.SSH_PRIVATE_KEY }}
-              port: 22
-              debug: true
-              script: |
-                whoami
-                pwd
-                ls -la
-        - name: Setup SSH Agent
-          uses: webfactory/ssh-agent@v0.8.0
-          with:
-              ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      # Step 1: Setup SSH Agent first
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-        - name: Test SSH Connection
-          run: |
-                ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
+      # Step 2: Test SSH Connection
+      - name: Test SSH Connection
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
+
+      # Step 3: Deploy to Server using SSH Action
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          debug: true
+          script: |
+            whoami
+            pwd
+            ls -la
+            cd /home/ubuntu
+            git clone https://github.com/saran625/ecommerce-fullstack.git app || true
+            cd app
+            git pull
+            sudo docker-compose down
+            sudo docker-compose up --build -d
