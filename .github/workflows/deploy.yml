@@ -63,6 +63,7 @@ EOF
         fi
         
         cp nginx.conf deployment/
+<<<<<<< HEAD
         
         # Create Dockerfiles if they don't exist
         echo "🐳 Creating Dockerfiles..."
@@ -129,6 +130,10 @@ EOF
         source: "ecommerce-app.tar.gz"
         target: "/home/ubuntu/"
     
+=======
+        tar -czf ecommerce-app.tar.gz deployment/
+    
+>>>>>>> 86ce0af8dee8fd524e34c68148e6cf69a1b70110
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -136,6 +141,7 @@ EOF
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+<<<<<<< HEAD
           echo "🚀 Starting deployment process..."
           
           cd /home/ubuntu
@@ -183,3 +189,15 @@ EOF
           curl http://localhost:5000/api/products | head -c 200
           
           echo "🎉 Deployment completed successfully!"
+=======
+          echo "🔄 Deploying to EC2 instance in us-east-1..."
+          cd /home/ubuntu
+          tar -xzf ecommerce-app.tar.gz
+          cd deployment
+          sudo docker-compose down || true
+          sudo docker-compose up --build -d
+          sleep 30
+          echo "✅ Services status:"
+          sudo docker ps
+          echo "🎉 Deployment completed!"
+>>>>>>> 86ce0af8dee8fd524e34c68148e6cf69a1b70110
