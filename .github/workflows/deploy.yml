@@ -20,11 +20,40 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          command_timeout: 20m  # Increase timeout to 20 minutes
+          command_timeout: 30m   # raised to 30 minutes
           script: |
+            set -euo pipefail
+
+            # change to home dir
             cd /home/ubuntu
-            sudo docker-compose down || true
-            rm -rf app
-            git clone https://github.com/saran625/ecommerce-fullstack.git app
-            cd app
-            sudo docker-compose up --build -d
+
+            # if repo already exists, update it; otherwise shallow-clone
+            if [ -d app/.git ]; then
+              cd app
+              git fetch --all --prune
+              git reset --hard origin/main
+              git clean -fdx
+            else
+              rm -rf app
+              git clone --depth=1 https://github.com/saran625/ecommerce-fullstack.git app
+              cd app
+            fi
+
+            # choose whether to use sudo based on docker group membership
+            if id -nG "$(whoami)" | grep -qw docker; then
+              DC="docker-compose"
+            else
+              DC="sudo docker-compose"
+            fi
+
+            # stop existing compose (ignore errors)
+            $DC down || true
+
+            # prefer pulling images (fast). If pull fails, build on host.
+            if $DC pull --ignore-pull-failures; then
+              $DC up -d
+            else
+              # fallback: build if pull didn't work
+              $DC up --build -d
+            fi
+
