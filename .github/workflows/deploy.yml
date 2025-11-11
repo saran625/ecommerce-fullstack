@@ -56,6 +56,10 @@ jobs:
               DOCKER="sudo docker"
             fi
       
+            # Check what's using port 80
+            echo "Checking services using port 80..."
+            sudo netstat -tulpn | grep :80 || echo "Port 80 check completed"
+      
             # Stop and remove any containers from previous deployments
             echo "Stopping and removing existing containers..."
             $DC down || true
@@ -64,14 +68,17 @@ jobs:
             echo "Removing any conflicting containers..."
             $DOCKER rm -f ecommerce_mongodb ecommerce_backend ecommerce_frontend app_mongodb app_backend app_frontend || true
       
-            # Remove all stopped containers (more comprehensive)
+            # Remove all stopped containers
             $DOCKER container prune -f
       
             # Remove unused networks
             $DOCKER network prune -f
       
-            # Remove unused volumes (optional - be careful with database data)
-            # $DOCKER volume prune -f
+            # Stop any service using port 80 (like nginx/apache)
+            echo "Stopping services that might use port 80..."
+            sudo systemctl stop nginx || true
+            sudo systemctl stop apache2 || true
+            sudo pkill -f ":80" || true
       
             # prefer pulling images (fast). If pull fails, build on host.
             if $DC pull --ignore-pull-failures; then
@@ -83,9 +90,13 @@ jobs:
       
             # Verify services are running
             echo "Checking running containers:"
-            sleep 10  # Give containers time to start
+            sleep 10
             $DC ps
       
             # Check container status
             echo "Container status:"
             $DC logs --tail=20
+      
+            # Verify port 80 is now serving your application
+            echo "Testing port 80..."
+            curl -f http://localhost:80 || echo "Port 80 test completed"
