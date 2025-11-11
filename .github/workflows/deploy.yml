@@ -20,6 +20,7 @@ jobs:
           echo -e "\nCurrent runner IP:"
           curl -s ifconfig.me
 
+     
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -55,16 +56,22 @@ jobs:
               DOCKER="sudo docker"
             fi
       
-            # Stop and remove any conflicting containers
+            # Stop and remove any containers from previous deployments
             echo "Stopping and removing existing containers..."
             $DC down || true
       
-            # Force remove any lingering containers with the same name
-            $DOCKER rm -f ecommerce_mongodb || true
+            # Force remove ALL containers that might conflict
+            echo "Removing any conflicting containers..."
+            $DOCKER rm -f ecommerce_mongodb ecommerce_backend ecommerce_frontend app_mongodb app_backend app_frontend || true
       
-            # Clean up any orphaned containers and networks
-            $DOCKER container prune -f || true
-            $DOCKER network prune -f || true
+            # Remove all stopped containers (more comprehensive)
+            $DOCKER container prune -f
+      
+            # Remove unused networks
+            $DOCKER network prune -f
+      
+            # Remove unused volumes (optional - be careful with database data)
+            # $DOCKER volume prune -f
       
             # prefer pulling images (fast). If pull fails, build on host.
             if $DC pull --ignore-pull-failures; then
@@ -76,4 +83,9 @@ jobs:
       
             # Verify services are running
             echo "Checking running containers:"
+            sleep 10  # Give containers time to start
             $DC ps
+      
+            # Check container status
+            echo "Container status:"
+            $DC logs --tail=20
