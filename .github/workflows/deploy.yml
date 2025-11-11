@@ -188,6 +188,7 @@ EOF
           echo "📱 Checking products API..."
           curl http://localhost:5000/api/products | head -c 200
           
+          
           echo "🎉 Deployment completed successfully!"
 =======
           echo "🔄 Deploying to EC2 instance in us-east-1..."
