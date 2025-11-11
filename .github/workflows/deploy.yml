@@ -13,6 +13,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Get GitHub Actions IP Ranges
+        run: |
+          echo "GitHub Actions IP ranges:"
+          curl -s https://api.github.com/meta | jq -r '.actions[]'
+          echo -e "\nCurrent runner IP:"
+          curl -s ifconfig.me
+
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -20,7 +27,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          command_timeout: 30m   # raised to 30 minutes
+          command_timeout: 30m
           script: |
             set -euo pipefail
 
@@ -56,4 +63,3 @@ jobs:
               # fallback: build if pull didn't work
               $DC up --build -d
             fi
-
