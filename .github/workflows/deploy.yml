@@ -30,10 +30,10 @@ jobs:
           command_timeout: 30m
           script: |
             set -euo pipefail
-
+      
             # change to home dir
             cd /home/ubuntu
-
+      
             # if repo already exists, update it; otherwise shallow-clone
             if [ -d app/.git ]; then
               cd app
@@ -45,17 +45,27 @@ jobs:
               git clone --depth=1 https://github.com/saran625/ecommerce-fullstack.git app
               cd app
             fi
-
+      
             # choose whether to use sudo based on docker group membership
             if id -nG "$(whoami)" | grep -qw docker; then
               DC="docker-compose"
+              DOCKER="docker"
             else
               DC="sudo docker-compose"
+              DOCKER="sudo docker"
             fi
-
-            # stop existing compose (ignore errors)
+      
+            # Stop and remove any conflicting containers
+            echo "Stopping and removing existing containers..."
             $DC down || true
-
+      
+            # Force remove any lingering containers with the same name
+            $DOCKER rm -f ecommerce_mongodb || true
+      
+            # Clean up any orphaned containers and networks
+            $DOCKER container prune -f || true
+            $DOCKER network prune -f || true
+      
             # prefer pulling images (fast). If pull fails, build on host.
             if $DC pull --ignore-pull-failures; then
               $DC up -d
@@ -63,3 +73,7 @@ jobs:
               # fallback: build if pull didn't work
               $DC up --build -d
             fi
+      
+            # Verify services are running
+            echo "Checking running containers:"
+            $DC ps
