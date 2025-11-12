@@ -1,18 +1,12 @@
-FROM python:3.11-slim
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY package*.json ./
+RUN npm ci --only=production
 
-# Copy application code
 COPY . .
-
-# Install curl for health check
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
 
-# Wait for MongoDB and start application
-CMD python wait_for_db.py && python app.py
+CMD ["node", "server.js"]
