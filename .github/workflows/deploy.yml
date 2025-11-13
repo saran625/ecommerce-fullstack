@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -17,24 +18,58 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Images
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
+
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
+
+      - name: Setup SSH
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest ./frontend
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest ./backend
-          docker push ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          
+      - name: Test SSH Connection
+        run: |
+          ssh -vvv -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'"
 
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/ecommerce-fullstack || mkdir -p ~/ecommerce-fullstack && cd ~/ecommerce-fullstack
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+            
+            # Navigate to project directory
+            cd ~/ecommerce-fullstack || { mkdir -p ~/ecommerce-fullstack && cd ~/ecommerce-fullstack; }
+            
+            # Login to Docker Hub
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            
+            # Pull latest images
             docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
+            
+            # Update containers (keep MongoDB running)
             docker-compose up -d --no-deps ecommerce_frontend ecommerce_backend
+            
+            # Show status
+            echo "Container status:"
             docker ps
             
+            # Show recent logs
+            echo "Recent logs:"
+            docker-compose logs --tail=20 ecommerce_frontend ecommerce_backend
+          ENDSSH
+      
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
