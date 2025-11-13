@@ -11,7 +11,6 @@ env:
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
   EC2_HOST: ${{ secrets.EC2_HOST }}
   EC2_USER: ${{ secrets.EC2_USER }}
-  EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
 jobs:
   build-and-push:
@@ -51,13 +50,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key.pem
+          chmod 600 ~/.ssh/deploy_key.pem
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_SSH_KEY }}
-          script: |
+        run: |
+          ssh -i ~/.ssh/deploy_key.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
             cd ~/ecommerce-fullstack
             
             # Login to Docker Hub
@@ -75,3 +80,9 @@ jobs:
             
             # Check logs
             docker-compose logs --tail=30 ecommerce_frontend ecommerce_backend
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key.pem
+        
