@@ -32,46 +32,24 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
 
-      # Replaced raw secret debug step with a safe, masked sanity check
-      - name: Sanity-check secrets (masked)
+      - name: Debug Secrets
         run: |
-          # show only lengths and masked snippets to avoid leaking secrets in logs
-          host="${{ secrets.EC2_HOST }}"
-          user="${{ secrets.EC2_USER }}"
-          sshkey="${{ secrets.EC2_SSH_KEY }}"
+          echo "EC2_HOST length: $(echo -n '${{ secrets.EC2_HOST }}' | wc -c)"
+          echo "EC2_USER length: $(echo -n '${{ secrets.EC2_USER }}' | wc -c)"
+          echo "EC2_HOST is: '${{ secrets.EC2_HOST }}'"
+          echo "EC2_USER is: '${{ secrets.EC2_USER }}'"
+          echo "SSH_KEY starts with: $(echo '${{ secrets.EC2_SSH_KEY }}' | head -c 30)"
 
-          echo "EC2_HOST length: ${#host}"
-          echo "EC2_USER length: ${#user}"
-          # mask host/user (first 3 / last 3) if long enough
-          mask() {
-            s="$1"
-            n=${#s}
-            if [ "$n" -le 6 ]; then
-              printf '%s\n' '***'
-            else
-              printf '%s\n' "${s:0:3}***${s:$(($n-3))}"
-            fi
-          }
-          echo "EC2_HOST masked: $(mask "$host")"
-          echo "EC2_USER masked: $(mask "$user")"
-          echo "EC2_SSH_KEY length (chars): ${#sshkey}"
-
-      # Hardened SSH key setup: use printf to preserve formatting and strip CRLF, collect common host key types
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          echo '${{ secrets.EC2_SSH_KEY }}' | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          # gather common host key types to known_hosts
-          ssh-keyscan -t rsa,ecdsa,ed25519 "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H '${{ secrets.EC2_HOST }}' >> ~/.ssh/known_hosts
           
-      # Masked test SSH connection echo to avoid printing full host/user
       - name: Test SSH Connection
         run: |
-          host="${{ secrets.EC2_HOST }}"
-          user="${{ secrets.EC2_USER }}"
-          # show masked form only
-          printf 'Attempting SSH to: %s@%s\n' "${user:0:3}***" "${host:0:3}***"
+          echo "Attempting SSH to: ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no '${{ secrets.EC2_USER }}'@'${{ secrets.EC2_HOST }}' "echo 'SSH connection successful'"
 
       - name: Deploy to EC2
@@ -86,7 +64,7 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
             
-            docker-compose up -d --no-deps ecommerce_frontend ecommerce_backend
+            docker-compose up -d
             
             echo "Container status:"
             docker ps
