@@ -8,13 +8,6 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-      SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,45 +15,76 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ecommerce-frontend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
 
       - name: Build and Push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKER_USERNAME }}/ecommerce-backend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
 
+      # Replaced raw secret debug step with a safe, masked sanity check
+      - name: Sanity-check secrets (masked)
+        run: |
+          # show only lengths and masked snippets to avoid leaking secrets in logs
+          host="${{ secrets.EC2_HOST }}"
+          user="${{ secrets.EC2_USER }}"
+          sshkey="${{ secrets.EC2_SSH_KEY }}"
+
+          echo "EC2_HOST length: ${#host}"
+          echo "EC2_USER length: ${#user}"
+          # mask host/user (first 3 / last 3) if long enough
+          mask() {
+            s="$1"
+            n=${#s}
+            if [ "$n" -le 6 ]; then
+              printf '%s\n' '***'
+            else
+              printf '%s\n' "${s:0:3}***${s:$(($n-3))}"
+            fi
+          }
+          echo "EC2_HOST masked: $(mask "$host")"
+          echo "EC2_USER masked: $(mask "$user")"
+          echo "EC2_SSH_KEY length (chars): ${#sshkey}"
+
+      # Hardened SSH key setup: use printf to preserve formatting and strip CRLF, collect common host key types
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          printf '%s' "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+          # gather common host key types to known_hosts
+          ssh-keyscan -t rsa,ecdsa,ed25519 "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
           
+      # Masked test SSH connection echo to avoid printing full host/user
       - name: Test SSH Connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH connection successful'"
+          host="${{ secrets.EC2_HOST }}"
+          user="${{ secrets.EC2_USER }}"
+          # show masked form only
+          printf 'Attempting SSH to: %s@%s\n' "${user:0:3}***" "${host:0:3}***"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no '${{ secrets.EC2_USER }}'@'${{ secrets.EC2_HOST }}' "echo 'SSH connection successful'"
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no '${{ secrets.EC2_USER }}'@'${{ secrets.EC2_HOST }}' bash << 'ENDSSH'
             set -e
             
             cd ~/ecommerce-fullstack || { mkdir -p ~/ecommerce-fullstack && cd ~/ecommerce-fullstack; }
             
-            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            echo '${{ secrets.DOCKER_PASSWORD }}' | docker login -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin
             
-            docker pull $DOCKER_USERNAME/ecommerce-frontend:latest
-            docker pull $DOCKER_USERNAME/ecommerce-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-frontend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/ecommerce-backend:latest
             
             docker-compose up -d --no-deps ecommerce_frontend ecommerce_backend
             
@@ -70,9 +94,6 @@ jobs:
             echo "Recent logs:"
             docker-compose logs --tail=20 ecommerce_frontend ecommerce_backend
           ENDSSH
-        env:
-          DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
       
       - name: Cleanup
         if: always()
